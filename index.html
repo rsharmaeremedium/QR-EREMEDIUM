@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR-EREMEDIUM</title>
+  <meta name="description" content="Free, offline, open web-based QR code generator. Create QR codes from text on different lines. No sign-up, no watermarks. Download PNG or SVG.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%236366f1'/%3E%3Cpath fill='%23fff' d='M7 7h8v8H7zm2 2v4h4V9zm8-2h8v8h-8zm2 2v4h4V9zM7 17h8v8H7zm2 2v4h4v-4zm12-2h2v2h-2zm2 2h2v2h-2zm-2 2h2v2h-2zm2 2h2v2h-2z'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="var(--accent)"/>
+        <path fill="#fff" d="M7 7h8v8H7zm2 2v4h4V9zm8-2h8v8h-8zm2 2v4h4V9zM7 17h8v8H7zm2 2v4h4v-4zm12-2h2v2h-2zm2 2h2v2h-2zm-2 2h2v2h-2zm2 2h2v2h-2z"/>
+      </svg>
+      <div>
+        <h1>QR-EREMEDIUM</em></h1>
+        <p class="tagline">Free QR codes from text on different lines &mdash; runs 100% in your browser.</p>
+      </div>
+    </div>
+    <button id="themeToggle" class="ghost-btn" type="button" title="Toggle dark / light theme" aria-label="Toggle theme">
+      <span class="theme-icon-light">&#9789;</span><span class="theme-icon-dark">&#9788;</span>
+    </button>
+  </header>
+
+  <main class="layout">
+    <!-- ============ INPUT PANEL ============ -->
+    <section class="panel" aria-label="QR content and options">
+      <div class="field">
+        <div class="field-head">
+          <label for="input">Your text <small>&mdash; each line becomes part of the QR</small></label>
+          <span id="stats" class="stats" aria-live="polite"></span>
+        </div>
+        <textarea id="input" rows="8" spellcheck="false" placeholder=""></textarea>
+      </div>
+
+      <div class="options-grid">
+        <div class="field">
+          <label for="ecl">Error correction</label>
+          <select id="ecl" title="Higher levels make the code more robust (can be covered/stained) but denser">
+            <option value="L">Low (7%)</option>
+            <option value="M" selected>Medium (15%)</option>
+            <option value="Q">Quartile (25%)</option>
+            <option value="H">High (30%)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="shape">Module shape</label>
+          <select id="shape">
+            <option value="square" selected>Square</option>
+            <option value="rounded">Rounded</option>
+            <option value="dots">Dots</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="margin">Quiet zone <small id="marginVal">4</small></label>
+          <input type="range" id="margin" min="0" max="10" step="1" value="4">
+        </div>
+
+        <div class="field">
+          <label for="pngSize">PNG export size</label>
+          <select id="pngSize">
+            <option value="256">256 &times; 256</option>
+            <option value="512" selected>512 &times; 512</option>
+            <option value="1024">1024 &times; 1024</option>
+            <option value="2048">2048 &times; 2048</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="fgColor">Foreground</label>
+          <input type="color" id="fgColor" value="#000000">
+        </div>
+
+        <div class="field">
+          <label for="bgColor">Background</label>
+          <input type="color" id="bgColor" value="#ffffff">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Colour presets</label>
+        <div class="presets" id="presets"></div>
+      </div>
+
+      <div class="quick-add">
+        <label>Quick insert</label>
+        <div class="chip-row">
+          <button type="button" class="chip" data-insert="wifi">Wi-Fi login</button>
+          <button type="button" class="chip" data-insert="link">Website link</button>
+          <button type="button" class="chip" data-insert="upi">UPI payment</button>
+          <button type="button" class="chip" data-insert="contact">Contact card</button>
+          <button type="button" class="chip" data-insert="clear">&#10005; Clear</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PREVIEW PANEL ============ -->
+    <section class="panel preview-panel" aria-label="QR code preview">
+      <div class="preview-frame" id="previewFrame">
+        <canvas id="canvas" width="512" height="512" role="img" aria-label="Generated QR code preview"></canvas>
+        <div id="placeholder" class="placeholder">Type or paste your text to generate the QR code</div>
+      </div>
+
+      <p id="message" class="message" role="status"></p>
+
+      <div class="actions">
+        <button id="downloadPng" class="primary-btn" type="button" disabled>Download PNG</button>
+        <button id="downloadSvg" class="secondary-btn" type="button" disabled>Download SVG</button>
+        <button id="copyBtn" class="ghost-btn" type="button" disabled title="Copy the encoded text to clipboard">Copy text</button>
+      </div>
+
+      <p class="hint">Scans instantly with any phone camera. Nothing is uploaded &mdash; generation happens entirely on your device, so it also works offline.<br>
+      If a download button seems to do nothing (some embedded previews swallow downloads), open this page in your normal browser, or right-click the QR image &rarr; <strong>Save image as&hellip;</strong></p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Free &amp; open &mdash; QR code engine by <a href="https://github.com/kazuhikoarase/qrcode-generator" target="_blank" rel="noopener">kazuhikoarase/qrcode-generator</a> (MIT). &ldquo;QR Code&rdquo; is a registered trademark of DENSO WAVE INCORPORATED.</p>
+  </footer>
+
+  <script src="js/qrcode.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
