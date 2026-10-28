@@ -280,6 +280,85 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 html[data-theme="dark"] .theme-icon-light { display: none; }
 html[data-theme="dark"] .theme-icon-dark { display: inline; }
 
+/* ---------- Tabs ---------- */
+[hidden] { display: none !important; } /* .layout sets display:grid, which would beat the UA rule */
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 1120px;
+  margin: 14px auto 0;
+  padding: 0 24px;
+}
+
+.tab {
+  padding: 9px 18px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--text-dim);
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.tab:hover { color: var(--accent); border-color: var(--accent); }
+
+.tab.active {
+  color: #fff;
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+html[data-theme="dark"] .tab.active { color: #101319; background: var(--accent); border-color: var(--accent); }
+
+/* ---------- Batch tab ---------- */
+.batch-layout { grid-template-columns: 1fr; }
+
+.batch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.batch-card {
+  background: var(--field-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 10px;
+  text-align: center;
+}
+
+.batch-thumb {
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  image-rendering: pixelated;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.batch-bad {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  color: var(--danger);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.batch-name {
+  margin-top: 8px;
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  word-break: break-all;
+}
+
+.message.warn { color: #b45309; }
+html[data-theme="dark"] .message.warn { color: #fbbf24; }
+
 /* ---------- Footer ---------- */
 .site-footer {
   max-width: 1120px;

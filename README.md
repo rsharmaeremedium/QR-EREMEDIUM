@@ -24,6 +24,7 @@ then open <http://localhost:8765>.
 | Feature | Details |
 |---|---|
 | Multi-line text | Line breaks are preserved exactly as typed |
+| Batch mode | One `file name, URL` per line → generates many QR codes and downloads them as a ZIP |
 | Live preview | Regenerates as you type |
 | Error correction | L (7%), M (15%), Q (25%), H (30%) — higher survives stains/covering |
 | Module shapes | Square (classic), Rounded, Dots |
@@ -42,6 +43,7 @@ QR-EREMEDIUM/
 ├── app.js              # All app logic (rendering, export, settings)
 ├── css/style.css       # Light/dark themes, responsive layout
 ├── js/qrcode.js        # QR engine (kazuhikoarase/qrcode-generator, MIT license)
+├── js/zip.js           # Tiny store-mode ZIP writer for batch downloads
 ├── start-server.bat    # Optional local server launcher (Windows)
 └── README.md
 ```

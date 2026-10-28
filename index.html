@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,7 +16,7 @@
         <path fill="#fff" d="M7 7h8v8H7zm2 2v4h4V9zm8-2h8v8h-8zm2 2v4h4V9zM7 17h8v8H7zm2 2v4h4v-4zm12-2h2v2h-2zm2 2h2v2h-2zm-2 2h2v2h-2zm2 2h2v2h-2z"/>
       </svg>
       <div>
-        <h1>QR-EREMEDIUM</em></h1>
+        <h1>QR-<em>EREMEDIUM</em></h1>
         <p class="tagline">Free QR codes from text on different lines &mdash; runs 100% in your browser.</p>
       </div>
     </div>
@@ -25,7 +25,12 @@
     </button>
   </header>
 
-  <main class="layout">
+  <nav class="tabs" role="tablist" aria-label="QR generator mode">
+    <button type="button" class="tab active" data-tab="single" role="tab" aria-selected="true" aria-controls="panelSingle">Single QR</button>
+    <button type="button" class="tab" data-tab="batch" role="tab" aria-selected="false" aria-controls="panelBatch">Batch &mdash; multiple QR codes</button>
+  </nav>
+
+  <main class="layout" id="panelSingle" role="tabpanel">
     <!-- ============ INPUT PANEL ============ -->
     <section class="panel" aria-label="QR content and options">
       <div class="field">
@@ -57,8 +62,8 @@
         </div>
 
         <div class="field">
-          <label for="margin">Quiet zone <small id="marginVal">4</small></label>
-          <input type="range" id="margin" min="0" max="10" step="1" value="4">
+          <label for="margin">Quiet zone <small id="marginVal">3</small></label>
+          <input type="range" id="margin" min="0" max="10" step="1" value="3">
         </div>
 
         <div class="field">
@@ -119,11 +124,91 @@
     </section>
   </main>
 
+  <!-- ============ BATCH TAB (full width) ============ -->
+  <main class="layout batch-layout" id="panelBatch" role="tabpanel" hidden>
+    <section class="panel" aria-label="Batch QR generation">
+      <div class="field">
+        <div class="field-head">
+          <label for="batchInput">One QR code per line <small>&mdash; <code>file name, URL</code> (comma or Tab). The file name is optional; lines starting with <code>#</code> are ignored.</small></label>
+          <span id="batchStats" class="stats" aria-live="polite"></span>
+        </div>
+        <textarea id="batchInput" rows="10" spellcheck="false" placeholder="shop, https://myshop.example&#10;menu, https://menu.example/today&#10;booking, https://cal.example/you&#10;https://plain.example"></textarea>
+      </div>
+
+      <div class="options-grid">
+        <div class="field">
+          <label for="batchEcl">Error correction</label>
+          <select id="batchEcl">
+            <option value="L">Low (7%)</option>
+            <option value="M" selected>Medium (15%)</option>
+            <option value="Q">Quartile (25%)</option>
+            <option value="H">High (30%)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="batchShape">Module shape</label>
+          <select id="batchShape">
+            <option value="square" selected>Square</option>
+            <option value="rounded">Rounded</option>
+            <option value="dots">Dots</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="batchMargin">Quiet zone <small id="batchMarginVal">3</small></label>
+          <input type="range" id="batchMargin" min="0" max="10" step="1" value="3">
+        </div>
+
+        <div class="field">
+          <label for="batchPngSize">PNG export size</label>
+          <select id="batchPngSize">
+            <option value="256">256 &times; 256</option>
+            <option value="512" selected>512 &times; 512</option>
+            <option value="1024">1024 &times; 1024</option>
+            <option value="2048">2048 &times; 2048</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="batchFormat">File format</label>
+          <select id="batchFormat">
+            <option value="png" selected>PNG (raster)</option>
+            <option value="svg">SVG (vector)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="batchFg">Foreground</label>
+          <input type="color" id="batchFg" value="#000000">
+        </div>
+
+        <div class="field">
+          <label for="batchBg">Background</label>
+          <input type="color" id="batchBg" value="#ffffff">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Preview <small>&mdash; thumbnails only; downloads use the export size above</small></label>
+        <div id="batchGrid" class="batch-grid"></div>
+      </div>
+
+      <div class="actions">
+        <button id="batchDownload" class="primary-btn" type="button" disabled>Download ZIP</button>
+        <button id="batchClear" class="ghost-btn" type="button">Clear</button>
+      </div>
+
+      <p id="batchMessage" class="message" role="status"></p>
+    </section>
+  </main>
+
   <footer class="site-footer">
     <p>Free &amp; open &mdash; QR code engine by <a href="https://github.com/kazuhikoarase/qrcode-generator" target="_blank" rel="noopener">kazuhikoarase/qrcode-generator</a> (MIT). &ldquo;QR Code&rdquo; is a registered trademark of DENSO WAVE INCORPORATED.</p>
   </footer>
 
   <script src="js/qrcode.js"></script>
+  <script src="js/zip.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

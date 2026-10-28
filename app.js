@@ -24,17 +24,37 @@
     bgColor: $('bgColor'),
     presets: $('presets'),
     canvas: $('canvas'),
+    previewFrame: $('previewFrame'),
     placeholder: $('placeholder'),
     stats: $('stats'),
     message: $('message'),
     downloadPng: $('downloadPng'),
     downloadSvg: $('downloadSvg'),
     copyBtn: $('copyBtn'),
-    themeToggle: $('themeToggle')
+    themeToggle: $('themeToggle'),
+    panelSingle: $('panelSingle'),
+    panelBatch: $('panelBatch'),
+    tabs: document.querySelectorAll('.tab'),
+    batchInput: $('batchInput'),
+    batchEcl: $('batchEcl'),
+    batchShape: $('batchShape'),
+    batchMargin: $('batchMargin'),
+    batchMarginVal: $('batchMarginVal'),
+    batchPngSize: $('batchPngSize'),
+    batchFormat: $('batchFormat'),
+    batchFg: $('batchFg'),
+    batchBg: $('batchBg'),
+    batchStats: $('batchStats'),
+    batchGrid: $('batchGrid'),
+    batchDownload: $('batchDownload'),
+    batchClear: $('batchClear'),
+    batchMessage: $('batchMessage')
   };
 
   var STORE_KEY = 'qrgen-eremedium-settings';
+  var BATCH_KEY = 'qrgen-eremedium-batch';
   var lastQR = null; // last generated qrcode object
+  var activeTab = 'single';
 
   /* ---------------- Settings persistence ---------------- */
   function saveSettings() {
@@ -46,7 +66,8 @@
         pngSize: els.pngSize.value,
         fg: els.fgColor.value,
         bg: els.bgColor.value,
-        theme: document.documentElement.getAttribute('data-theme')
+        theme: document.documentElement.getAttribute('data-theme'),
+        tab: activeTab
       }));
     } catch (e) { /* storage may be unavailable (private mode) — ignore */ }
   }
@@ -62,6 +83,7 @@
       if (s.fg) els.fgColor.value = s.fg;
       if (s.bg) els.bgColor.value = s.bg;
       if (s.theme) document.documentElement.setAttribute('data-theme', s.theme);
+      if (s.tab) showTab(s.tab, false);
     } catch (e) { /* ignore corrupt settings */ }
   }
 
@@ -160,29 +182,17 @@
       ctx.closePath();
       ctx.fill();
     } else {
-      ctx.fillRect(x, y, s + 0.5, s + 0.5); // +0.5 closes hairline seams
+      ctx.fillRect(x, y, s, s); // integer coords + integer size => no seams, no anti-aliasing
     }
   }
 
-  function renderCanvas(qr, canvas, opt, pixelSize) {
+  // Draw the QR into a canvas whose bitmap is already at integer module size.
+  function drawQR(qr, canvas, opt, unit) {
     var count = qr.getModuleCount();
-    var total = count + opt.margin * 2;
-    var size = pixelSize || canvas.width;
-    var dpr = Math.max(1, window.devicePixelRatio || 1);
-    var phys = Math.max(total, Math.floor(size * dpr)); // physical pixels
-    var scale = phys / total;                            // may be fractional
-    var unit = Math.floor(scale);                        // crisp integer modules
-    if (unit < 1) unit = 1;
-    var side = unit * total;
-
-    canvas.width = side;
-    canvas.height = side;
-
     var ctx = canvas.getContext('2d');
     ctx.fillStyle = opt.bg;
-    ctx.fillRect(0, 0, side, side);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = opt.fg;
-
     for (var r = 0; r < count; r++) {
       for (var c = 0; c < count; c++) {
         if (qr.isDark(r, c)) {
@@ -192,11 +202,54 @@
     }
   }
 
+  // Render a crisp QR into `canvas` at exactly `targetPx` (used for PNG export
+  // and batch thumbnails). Modules stay integer-sized; the final jump to the
+  // exact size is a nearest-neighbour upscale, so edges never blur.
+  function renderExact(qr, canvas, opt, targetPx) {
+    var total = qr.getModuleCount() + opt.margin * 2;
+    var unit = Math.max(1, Math.floor(targetPx / total));
+    var side = unit * total;
+
+    canvas.width = side;
+    canvas.height = side;
+    drawQR(qr, canvas, opt, unit);
+
+    if (targetPx > side) {
+      var out = document.createElement('canvas');
+      out.width = out.height = targetPx;
+      var octx = out.getContext('2d');
+      octx.imageSmoothingEnabled = false;
+      octx.drawImage(canvas, 0, 0, targetPx, targetPx);
+
+      canvas.width = canvas.height = targetPx;
+      var ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(out, 0, 0);
+    }
+  }
+
+  // On-screen preview: size the bitmap so one module = a whole number of
+  // device pixels (crisp at any zoom), matching the frame width.
+  function renderPreview(qr, opt) {
+    var canvas = els.canvas;
+    var total = qr.getModuleCount() + opt.margin * 2;
+    var dpr = Math.max(1, window.devicePixelRatio || 1);
+    var frameW = els.previewFrame.clientWidth;
+    var cssW = frameW ? Math.min(340, frameW - 36) : 340; // 36 = frame padding
+    var unit = Math.max(1, Math.floor((cssW * dpr) / total));
+    var side = unit * total;
+
+    canvas.width = side;
+    canvas.height = side;
+    drawQR(qr, canvas, opt, unit);
+    canvas.style.width = canvas.style.height = (side / dpr) + 'px';
+  }
+
   function buildSvgString(qr, opt) {
     var count = qr.getModuleCount();
     var total = count + opt.margin * 2;
     var parts = [
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + total + ' ' + total + '" width="' + (total * 8) + '" height="' + (total * 8) + '" shape-rendering="crispEdges">',
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + total + ' ' + total + '" width="' + (total * 8) + '" height="' + (total * 8) + '" shape-rendering="' + (opt.shape === 'square' ? 'crispEdges' : 'geometricPrecision') + '">',
       '<rect width="' + total + '" height="' + total + '" fill="' + opt.bg + '"/>'
     ];
 
@@ -251,6 +304,23 @@
     els.message.className = 'message' + (type ? ' ' + type : '');
   }
 
+  /* ---------------- Scanability helpers ---------------- */
+  function relLum(hex) {
+    var n = parseInt(hex.slice(1), 16);
+    var ch = [n >> 16 & 255, n >> 8 & 255, n & 255].map(function (v) {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
+  }
+
+  // Phone cameras scan by contrast, so warn when the colours are too close.
+  function contrastWarn(opt) {
+    var a = relLum(opt.fg), b = relLum(opt.bg);
+    var ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    return ratio < 3 ? 'Low-contrast colours can be hard to scan \u2014 a darker foreground on a lighter background works best.' : '';
+  }
+
   /* ---------------- Main update ---------------- */
   function update() {
     var text = els.input.value;
@@ -283,12 +353,13 @@
     }
 
     lastQR = qr;
-    renderCanvas(qr, els.canvas, opt);
+    renderPreview(qr, opt);
     els.canvas.style.display = 'block';
     els.placeholder.style.display = 'none';
     setButtonsEnabled(true);
     updateStats(text, qr);
-    showMessage('');
+    var warn = contrastWarn(opt);
+    showMessage(warn, warn ? 'warn' : '');
     saveSettings();
   }
 
@@ -328,7 +399,7 @@
     var text = els.input.value;
     var opt = getOptions();
     var off = document.createElement('canvas');
-    renderCanvas(lastQR, off, opt, opt.exportSize);
+    renderExact(lastQR, off, opt, opt.exportSize);
     var name = slugify(text) + '.png';
     if (off.toBlob) {
       off.toBlob(function (blob) {
@@ -394,9 +465,267 @@
   els.margin.addEventListener('input', update);
   els.pngSize.addEventListener('change', saveSettings);
 
+  /* ---------------- Tabs ---------------- */
+  function showTab(name, persist) {
+    activeTab = name === 'batch' ? 'batch' : 'single';
+    els.panelSingle.hidden = activeTab === 'batch';
+    els.panelBatch.hidden = activeTab !== 'batch';
+    Array.prototype.forEach.call(els.tabs, function (t) {
+      var on = t.getAttribute('data-tab') === activeTab;
+      t.classList.toggle('active', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    if (activeTab === 'single' && lastQR) renderPreview(lastQR, getOptions());
+    if (persist !== false) saveSettings();
+  }
+
+  Array.prototype.forEach.call(els.tabs, function (t) {
+    t.addEventListener('click', function () { showTab(t.getAttribute('data-tab')); });
+  });
+
+  /* ---------------- Batch mode ---------------- */
+  var batchEntries = [];
+  var batchTimer = null;
+
+  function getBatchOptions() {
+    return {
+      ecl: els.batchEcl.value,
+      shape: els.batchShape.value,
+      margin: parseInt(els.batchMargin.value, 10),
+      fg: els.batchFg.value,
+      bg: els.batchBg.value,
+      exportSize: parseInt(els.batchPngSize.value, 10),
+      format: els.batchFormat.value
+    };
+  }
+
+  function saveBatchSettings() {
+    try { localStorage.setItem(BATCH_KEY, JSON.stringify(getBatchOptions())); }
+    catch (e) { /* storage unavailable — ignore */ }
+  }
+
+  function loadBatchSettings() {
+    try {
+      var s = JSON.parse(localStorage.getItem(BATCH_KEY) || 'null');
+      if (!s) {
+        // First run: match the style chosen on the Single tab
+        var m = JSON.parse(localStorage.getItem(STORE_KEY) || 'null') || {};
+        if (m.ecl) els.batchEcl.value = m.ecl;
+        if (m.shape) els.batchShape.value = m.shape;
+        if (m.margin != null) els.batchMargin.value = m.margin;
+        if (m.pngSize) els.batchPngSize.value = m.pngSize;
+        if (m.fg) els.batchFg.value = m.fg;
+        if (m.bg) els.batchBg.value = m.bg;
+        return;
+      }
+      if (s.ecl) els.batchEcl.value = s.ecl;
+      if (s.shape) els.batchShape.value = s.shape;
+      if (s.margin != null) els.batchMargin.value = s.margin;
+      if (s.pngSize) els.batchPngSize.value = s.pngSize;
+      if (s.fg) els.batchFg.value = s.fg;
+      if (s.bg) els.batchBg.value = s.bg;
+      if (s.format) els.batchFormat.value = s.format;
+    } catch (e) { /* ignore corrupt settings */ }
+  }
+
+  function sanitizeFileName(s) {
+    return (s || '')
+      .replace(/[\\/:*?"<>|]/g, '')   // characters Windows/filesystems reject
+      .replace(/\s+/g, '-')
+      .replace(/^[.\-]+|[.\-]+$/g, '')
+      .slice(0, 60);
+  }
+
+  function deriveNameFromUrl(url) {
+    try {
+      var u = new URL(url);
+      var seg = u.pathname.split('/').filter(Boolean).pop() || u.hostname.replace(/^www\./, '');
+      return sanitizeFileName(seg) || 'qrcode';
+    } catch (e) {
+      return sanitizeFileName(url.replace(/^https?:\/\//, '')) || 'qrcode';
+    }
+  }
+
+  function uniqueName(base, seen) {
+    var name = base, n = 2;
+    while (seen[name]) { name = base + '-' + n; n++; }
+    seen[name] = true;
+    return name;
+  }
+
+  // Each line: "file name, URL" (comma or Tab). File name optional.
+  function parseBatch(text) {
+    var entries = [], problems = [], seen = Object.create(null);
+    text.split(/\r?\n/).forEach(function (raw, i) {
+      var line = raw.trim();
+      if (!line || line.charAt(0) === '#') return;
+
+      var name = '', url = '';
+      var tabIdx = line.indexOf('\t'), commaIdx = line.indexOf(',');
+      if (tabIdx !== -1) {
+        name = line.slice(0, tabIdx).trim();
+        url = line.slice(tabIdx + 1).trim();
+      } else if (commaIdx !== -1) {
+        var before = line.slice(0, commaIdx).trim(), after = line.slice(commaIdx + 1).trim();
+        if (/^https?:\/\//i.test(before) && !/^https?:\/\//i.test(after)) {
+          url = line; // the URL itself contains a comma — whole line is the URL
+        } else {
+          name = before; url = after;
+        }
+      } else {
+        url = line; // no name given — derive it from the URL
+      }
+
+      if (!url) { problems.push('line ' + (i + 1) + ': no URL'); return; }
+      entries.push({ file: uniqueName(sanitizeFileName(name) || deriveNameFromUrl(url), seen), url: url, line: i + 1 });
+    });
+    return { entries: entries, problems: problems };
+  }
+
+  function setBatchMessage(text, type) {
+    els.batchMessage.textContent = text || '';
+    els.batchMessage.className = 'message' + (type ? ' ' + type : '');
+  }
+
+  function batchUpdate() {
+    var opt = getBatchOptions();
+    els.batchMarginVal.textContent = opt.margin;
+    els.batchPngSize.disabled = opt.format === 'svg'; // size only applies to PNG
+    els.batchGrid.innerHTML = '';
+    batchEntries = [];
+
+    var parsed = parseBatch(els.batchInput.value);
+    var ready = 0, failed = 0;
+
+    parsed.entries.forEach(function (e) {
+      var card = document.createElement('div');
+      card.className = 'batch-card';
+      var ok = false;
+      try {
+        var qr = buildQR(e.url, opt.ecl);
+        var c = document.createElement('canvas');
+        renderExact(qr, c, opt, 140);
+        c.className = 'batch-thumb';
+        c.setAttribute('role', 'img');
+        c.setAttribute('aria-label', 'QR preview for ' + e.file);
+        card.appendChild(c);
+        e.qr = qr;
+        ok = true;
+        ready++;
+      } catch (err) {
+        var bad = document.createElement('div');
+        bad.className = 'batch-thumb batch-bad';
+        bad.textContent = 'Too long';
+        card.appendChild(bad);
+        failed++;
+      }
+      var nm = document.createElement('div');
+      nm.className = 'batch-name';
+      nm.textContent = e.file + '.' + opt.format;
+      nm.title = e.url;
+      card.appendChild(nm);
+      els.batchGrid.appendChild(card);
+      e.ok = ok;
+      batchEntries.push(e);
+    });
+
+    var bits = [ready + ' ready'];
+    if (failed) bits.push(failed + ' too long');
+    if (parsed.problems.length) bits.push(parsed.problems.length + ' skipped');
+    els.batchStats.textContent = bits.join(' \u00B7 ');
+
+    var warn = contrastWarn(opt);
+    if (warn) setBatchMessage(warn, 'warn');
+    else if (parsed.problems.length) {
+      setBatchMessage('Skipped: ' + parsed.problems.slice(0, 3).join('; ') +
+        (parsed.problems.length > 3 ? ' \u2026' : ''), 'error');
+    } else setBatchMessage('');
+
+    els.batchDownload.disabled = ready === 0;
+    saveBatchSettings();
+  }
+
+  function stamp() {
+    var d = new Date(), p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return '' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) +
+           '-' + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds());
+  }
+
+  function downloadBatchZip() {
+    var list = batchEntries.filter(function (e) { return e.ok; });
+    if (!list.length) return;
+
+    var opt = getBatchOptions();
+    els.batchDownload.disabled = true;
+    setBatchMessage('Preparing ' + list.length + ' file' + (list.length === 1 ? '' : 's') + '\u2026');
+
+    Promise.all(list.map(function (e) {
+      if (opt.format === 'svg') {
+        return Promise.resolve({ name: e.file + '.svg', data: buildSvgString(e.qr, opt) });
+      }
+      var c = document.createElement('canvas');
+      renderExact(e.qr, c, opt, opt.exportSize);
+      return new Promise(function (resolve, reject) {
+        c.toBlob(function (blob) {
+          if (!blob) { reject(new Error('PNG export failed')); return; }
+          blob.arrayBuffer().then(function (buf) {
+            resolve({ name: e.file + '.png', data: new Uint8Array(buf) });
+          });
+        }, 'image/png');
+      });
+    })).then(function (files) {
+      var zipBlob = QRZip.create(files);
+      var name = 'qr-batch-' + stamp() + '.zip';
+      var url = URL.createObjectURL(zipBlob);
+      triggerDownload(url, name);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+      batchUpdate(); // refresh stats + button state
+      setBatchMessage('Saved \u201C' + name + '\u201D with ' + files.length +
+        ' file' + (files.length === 1 ? '' : 's') + ' \u2014 look in your browser\u2019s Downloads folder.', 'ok');
+    }).catch(function (err) {
+      batchUpdate();
+      setBatchMessage('Could not build the ZIP: ' + (err && err.message ? err.message : err), 'error');
+    });
+  }
+
+  function onBatchChange() { batchUpdate(); }
+
+  els.batchInput.addEventListener('input', function () {
+    clearTimeout(batchTimer);
+    batchTimer = setTimeout(batchUpdate, 250);
+  });
+
+  [els.batchEcl, els.batchShape, els.batchFg, els.batchBg].forEach(function (el) {
+    el.addEventListener('input', onBatchChange);
+    el.addEventListener('change', onBatchChange);
+  });
+
+  els.batchMargin.addEventListener('input', onBatchChange);
+  els.batchPngSize.addEventListener('change', onBatchChange);
+  els.batchFormat.addEventListener('change', onBatchChange);
+
+  els.batchClear.addEventListener('click', function () {
+    els.batchInput.value = '';
+    batchUpdate();
+    els.batchInput.focus();
+  });
+
+  els.batchDownload.addEventListener('click', downloadBatchZip);
+
+  /* ---------------- Resize: keep the preview crisp ---------------- */
+  var resizeTimer = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      if (activeTab === 'single' && lastQR) renderPreview(lastQR, getOptions());
+    }, 150);
+  });
+
   /* ---------------- Init ---------------- */
   loadSettings();
   buildPresets();
+  loadBatchSettings();
+  batchUpdate();
   update();
 
   // Remember cursor position so quick-insert templates can be tweaked easily
