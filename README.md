@@ -1,4 +1,4 @@
-# QRGen eremedium — Free Multi-Line QR Code Generator
+# QR-EREMEDIUM — Free Multi-Line QR Code Generator
 
 A 100% free, web-based QR code generator that specialises in **text on different lines**.
 Type or paste as many lines as you want — every line break is preserved inside the QR code.
@@ -37,7 +37,7 @@ then open <http://localhost:8765>.
 ## Files
 
 ```
-QRGenEremedium/
+QR-EREMEDIUM/
 ├── index.html          # The app page
 ├── app.js              # All app logic (rendering, export, settings)
 ├── css/style.css       # Light/dark themes, responsive layout
