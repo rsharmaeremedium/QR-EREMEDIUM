@@ -722,6 +722,16 @@
   });
 
   /* ---------------- Init ---------------- */
+  // A refresh (F5 / Ctrl+F5) is treated as "reset to defaults": saved settings
+  // only survive closing and reopening the browser, not a page reload.
+  try {
+    var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+    if (nav && nav.type === 'reload') {
+      localStorage.removeItem(STORE_KEY);
+      localStorage.removeItem(BATCH_KEY);
+    }
+  } catch (e) { /* storage unavailable — ignore */ }
+
   loadSettings();
   buildPresets();
   loadBatchSettings();
