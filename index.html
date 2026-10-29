@@ -46,8 +46,8 @@
           <label for="ecl">Error correction</label>
           <select id="ecl" title="Higher levels make the code more robust (can be covered/stained) but denser">
             <option value="L">Low (7%)</option>
-            <option value="M" selected>Medium (15%)</option>
-            <option value="Q">Quartile (25%)</option>
+            <option value="M">Medium (15%)</option>
+            <option value="Q" selected>Quartile (25%)</option>
             <option value="H">High (30%)</option>
           </select>
         </div>
@@ -62,15 +62,16 @@
         </div>
 
         <div class="field">
-          <label for="margin">Quiet zone <small id="marginVal">3</small></label>
-          <input type="range" id="margin" min="0" max="10" step="1" value="3">
+          <label for="margin">Quiet zone <small id="marginVal">2</small></label>
+          <input type="range" id="margin" min="0" max="10" step="1" value="2">
         </div>
 
         <div class="field">
           <label for="pngSize">PNG export size</label>
           <select id="pngSize">
             <option value="256">256 &times; 256</option>
-            <option value="512" selected>512 &times; 512</option>
+            <option value="500" selected>500 &times; 500</option>
+            <option value="512">512 &times; 512</option>
             <option value="1024">1024 &times; 1024</option>
             <option value="2048">2048 &times; 2048</option>
           </select>
@@ -140,8 +141,8 @@
           <label for="batchEcl">Error correction</label>
           <select id="batchEcl">
             <option value="L">Low (7%)</option>
-            <option value="M" selected>Medium (15%)</option>
-            <option value="Q">Quartile (25%)</option>
+            <option value="M">Medium (15%)</option>
+            <option value="Q" selected>Quartile (25%)</option>
             <option value="H">High (30%)</option>
           </select>
         </div>
@@ -156,15 +157,16 @@
         </div>
 
         <div class="field">
-          <label for="batchMargin">Quiet zone <small id="batchMarginVal">3</small></label>
-          <input type="range" id="batchMargin" min="0" max="10" step="1" value="3">
+          <label for="batchMargin">Quiet zone <small id="batchMarginVal">2</small></label>
+          <input type="range" id="batchMargin" min="0" max="10" step="1" value="2">
         </div>
 
         <div class="field">
           <label for="batchPngSize">PNG export size</label>
           <select id="batchPngSize">
             <option value="256">256 &times; 256</option>
-            <option value="512" selected>512 &times; 512</option>
+            <option value="500" selected>500 &times; 500</option>
+            <option value="512">512 &times; 512</option>
             <option value="1024">1024 &times; 1024</option>
             <option value="2048">2048 &times; 2048</option>
           </select>
